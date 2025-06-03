@@ -11,3 +11,5 @@ int flag::regular() asm "0x10 PUSHINT";
 int flag::bounce() asm "0x8 PUSHINT";
 int mint_fee() asm "150000000 PUSHINT";
 int storage_coins() asm "20000000 PUSHINT"; ;; 0.02 TON
+int transfer_fee() asm "50000000 PUSHINT"; ;; 0.05 TON
+int player_fee() asm "270000000 PUSHINT"; ;; 0.27 TON for one ticket

@@ -16,17 +16,17 @@ export async function run(provider: NetworkProvider) {
     const lotteryConfig = {
         collectionAddress: collection.address, // Адрес коллекции будет взят автоматически
         adminAddress: process.env.ADMIN_ADDRESS || '', // Адрес админа для лотереи
-        price: 0.03, //Цена билета
+        price: BigInt(process.env.TICKET_PRICE || '10000000'), // цена билета в jetton
         refPercent: Number(process.env.REF_PERCENT || '0'), // комиссия в базисных пунктах
+        tokenAddress: Address.parse(process.env.TOKEN_ADDRESS || ''),
     };
 
     const jet = provider.open(Jet.createFromConfig(lotteryConfig, await compile('Jet')));
 
-    //await deploy();
+    // await deploy();
     await setLotteryAddress();
     // withdraw();
     // finishRound();
-    // changeAdminAddress();
 
     // функция создает контракт с лотереей
     async function deploy() {
@@ -57,19 +57,6 @@ export async function run(provider: NetworkProvider) {
             to: jet.address,
             value: toNano(0.05),
             body: beginCell().storeUint(4, 32).storeUint(0, 64).storeAddress(Address.parse(winner_address)).endCell(),
-        });
-    }
-
-    // Изменит адрес администратора лотереи
-    async function changeAdminAddress(new_admin: string) {
-        await provider.sender().send({
-            to: jet.address,
-            value: toNano('0.01'),
-            body: beginCell()
-                .storeUint(3, 32)
-                .storeUint(0, 64)
-                .storeAddress(Address.parse(new_admin))
-                .endCell(),
         });
     }
 

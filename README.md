@@ -1,99 +1,66 @@
-1) После того как репозиторий был склонирован, необходимо установить зависимости
-npm install
+# Lotshot Smart Contracts
 
-2) Заполнить файл .env.example и переименовать его в .env
+Репозиторий содержит смарт‑контракты на FunC и скрипты для запуска лотереи Lotshot в сети TON.
 
-3) Для создания коллекции нужно иметь на ссылку на метаданные, например "ipfs://bafybeihvz6ausl63mi5mrnutke7invvcj57qq4brh2ple6jrf4aiouvrbe"
-По ссылке должна открываться папка с доступными для чтения файлами collection.json, 0.json - 7.json
+## Установка
+1. `npm install`
+2. Скопируйте `.env.example` в `.env` и заполните параметры:
+   - `COLLECTION_OWNER` – владелец NFT‑коллекции;
+   - `ADMIN_ADDRESS` – кошелёк администратора лотереи;
+   - `TOKEN_ADDRESS` – jetton, используемый для оплаты билетов;
+   - `TICKET_PRICE` – стоимость билета в jetton;
+   - `REF_PERCENT` – процент для реферала (в б.п.).
 
-4) Чтобы развернуть контракт коллекции в блокчейне нужно заполнить collectionConfig в файле scripts/deployJet.ts
-owner - адрес владельца коллекции
-royalty - указывается процент роялти
-content - ссылка на метаданные
+## Деплой
+1. Подготовьте метаданные `collection.json` и `0.json–7.json`, загрузите их в IPFS и укажите ссылку в `collectionConfig.content`.
+2. Запустите `npm run start` и выберите `deployCollection` – будет создан контракт коллекции NFT.
+3. Настройте `lotteryConfig` в `scripts/deployJet.ts` и выберите `deployJet` для развертывания лотереи.
+4. Выполните `setLotteryAddress()` из того же скрипта, чтобы лотерея могла минтить NFT.
 
-- ввести команду:
-npm run start
+В `deployJet.ts` также доступны функции `withdraw()` и `finishRound(winner)`.
 
-- далее выбирать:
-deployCollection
-mainnet
-Mnemonic
+## Участие
+Игрок отправляет jetton `transfer` на кошелёк лотереи с суммой `TICKET_PRICE`. При наличии реферала его адрес (267 бит) помещается в payload. Переплата возвращается, а указанная часть билета перечисляется рефереру.
 
-5) После развертывания контракта коллекции можно приступить к развертыванию контракта лотереи
-для этого нужно заполнить lotteryConfig в scripts/deployJet.ts
+## Механика лотереи
+1. После получения платежа генерируется случайное число `x` от 0 до 11999.
+2. При `x == 0` контракт уведомляет администратора о потенциальном джекпоте. Админ вызывает `finishRound(address)`:
+   - игрок получает `JACKPOT_PRIZE` (10 000 jetton) и NFT `0`;
+   - счётчик джекпота увеличивается и новые билеты не принимаются.
+3. Иначе сравниваются диапазоны и лимиты выигрышей:
+   - `x < 4` и `major < 3` – **Major** (1 800 jetton, NFT `1`)
+   - `x < 14` и `high < 10` – **High** (700 jetton, NFT `2`)
+   - `x < 64` и `mid < 50` – **Mid** (180 jetton, NFT `3`)
+   - `x < 214` и `low_mid < 150` – **Low Mid** (50 jetton, NFT `4`)
+   - `x < 514` и `low < 300` – **Low** (25 jetton, NFT `5`)
+   - `x < 1714` и `mini < 1200` – **Mini** (10 jetton, NFT `6`)
+   - иначе игрок получает NFT `7` без приза.
+4. После выдачи призов соответствующие счётчики увеличиваются, NFT минтится из коллекции, а jetton переводится игроку.
+5. На контракте должно оставаться не менее 0.05 TON и достаточный запас jetton для будущих выплат.
+6. При отправке билета в `forward_payload` первым помещайте свой TON‑кошелёк, а после него при желании адрес реферала. В поле `forward_ton_amount` укажите не менее `0.27` TON.
 
-collectionAddress - будет выставлен автоматически, адрес формируется из collectionConfig
-adminAddress - указать кошелек администратора лотереи
-price - указываем цену лотерейного билета
-refPercent - процент комиссии для реферала в б.п.
+## Пример отправки билета
+```tsx
+import { beginCell, Address } from '@ton/core';
 
-6) в файле deployJet.ts описаны функции для развертывания и взаимодействия с контрактом лотереи
+const referral = undefined as string | undefined;
 
-deploy() - отправляет транзакция для развертывания контракта
-setLotteryAddress() - отправляет транзакцию на адрес коллекции для установки lottery_address
-withdraw() - выводит деньги с контракта лотереи (оставляет 0.05)
-finishRound() - закрывает контракт лотереи и отправляет нфт для победителя jackpot'а
+const forwardPayloadBuilder = beginCell().storeAddress(userWallet); // player wallet
+if (referral) {
+  forwardPayloadBuilder.storeAddress(Address.parse(referral));
+}
+const forwardPayload = forwardPayloadBuilder.endCell();
 
-вызовы функций закомментированы, для отправки транзакции нужно раскомментировать нужную и ввести:
-npm run start
+const payload = beginCell()
+  .storeUint(0xf8a7ea5, 32)
+  .storeUint(0, 64)
+  .storeCoins(BigInt(process.env.TICKET_PRICE!))
+  .storeAddress(Address.parse(lotteryWallet))
+  .storeAddress(userWallet)
+  .storeBit(0)
+  .storeCoins(toNano('0.27'))
+  .storeRef(forwardPayload)
+  .endCell();
+```
 
-выбрать:
-deployJet
-mainnet
-Mnemonic
-
-чтобы лотерея работала необходимо обязательно отправить транзакцию на deploy() и setLotteryAddress()
-
-
-
-1) Once the repository has been cloned, you need to install the dependencies
-npm install
-
-2) Fill in the .env.example file and rename it to .env
-
-3) To create a collection you need to have a metadata link to the collection, for example “ipfs://bafybeihvvz6ausl63mi5mrnutke7invvcj57qqq4brh2ple6jrf4aiouvrbe”
-The link should open a folder with readable files collection.json, 0.json - 7.json
-
-4) To deploy the collection contract in the blockchain you need to fill the collectionConfig in the scripts/deployJet.ts file
-owner - address of the collection owner
-royalty - specifies the royalty percentage
-content - reference to metadata
-
-- enter the command:
-npm run start
-
-- then select:
-deployCollection
-mainnet
-Mnemonic
-
-5) Once the collection contract is deployed, you can start deploying the lottery contract
-to do this you need to fill in lotteryConfig in scripts/deployJet.ts
-
-collectionAddress - will be set automatically, the address is generated from collectionConfig
-adminAddress - specify the lottery administrator's wallet
-price - specify the price of the lottery ticket
-refPercent - commission for the referral in basis points
-
-6) the deployJet.ts file describes functions for deployment and interaction with the lottery contract
-
-deploy() - sends a transaction to deploy the contract
-setLotteryAddress() - sends a transaction to the collection address to set lottery_address
-withdraw() - withdraws money from the lottery contract (leaves 0.05)
-finishRound() - closes the lottery contract and sends nft for the jackpot winner
-
-function calls are commented out, to send a transaction you need to uncomment the necessary one and enter it:
-npm run start
-
-select:
-deployJet
-mainnet
-Mnemonic
-
-for the lottery to work you must send a transaction to deploy() and setLotteryAddress().
-
-### Participation
-
-To buy a ticket without a referral, simply send the ticket price to the lottery contract with an empty body. If you have a referrer, put their address (267 bits) in the message body when sending the payment. A part of the ticket value, configured during deployment, will be transferred to the referrer automatically.
-
-Translated with DeepL.com (free version)
+Отправьте `transfer` с этим payload через ваш кошелёк.

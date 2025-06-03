@@ -98,12 +98,37 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 
 
     if (op == 1) { ;; deploy new nft
-    	throw_unless(401, equal_slices(sender_address, lottery_address));
-		deploy_nft_item(next_item_index, nft_item_code, in_msg_body~load_coins(), in_msg_body~load_ref());
+        throw_unless(401, equal_slices(sender_address, lottery_address));
+                cell nft_content = in_msg_body~load_ref();
+                deploy_nft_item(next_item_index, nft_item_code, in_msg_body~load_coins(), nft_content);
 
-		next_item_index += 1;
-		save_data(lottery_address, owner_address, next_item_index, content, nft_item_code, royalty_params);
-		return ();
+                slice cs = nft_content.begin_parse();
+                slice new_owner = cs~load_msg_addr();
+                cell st = calculate_nft_item_state_init(next_item_index, nft_item_code);
+                slice nft_addr = calculate_nft_item_address(workchain(), st);
+
+                var transfer_body = begin_cell()
+                        .store_uint(op::transfer(), 32)
+                        .store_uint(0, 64)
+                        .store_slice(new_owner)
+                        .store_slice(lottery_address)
+                        .store_uint(0, 1)
+                        .store_coins(0)
+                        .store_uint(0, 1)
+                        .end_cell();
+
+                var transfer_msg = begin_cell()
+                        .store_uint(0x18, 6)
+                        .store_slice(nft_addr)
+                        .store_coins(transfer_fee())
+                        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                        .store_ref(transfer_body)
+                        .end_cell();
+                send_raw_message(transfer_msg, 1);
+
+                next_item_index += 1;
+                save_data(lottery_address, owner_address, next_item_index, content, nft_item_code, royalty_params);
+                return ();
     }
 
 	if (op == 2) { ;; change lottery_address

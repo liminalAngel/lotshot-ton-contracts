@@ -18,12 +18,12 @@ cell generate_nft_content(int value, slice owner) {
     return begin_cell().store_slice(owner).store_ref(result.store_slice(".json").end_cell()).end_cell();
 }
 
-() send_winning(int value, slice address, slice text, slice collection_address, int content) impure inline {
+() send_winning(int value, slice address, slice text, slice collection_address, int content, slice token_address) impure inline {
 	cell content_cell = generate_nft_content(content, address);
 	var deploy_message = begin_cell()
 		.store_uint(0x18, 6)
 		.store_slice(collection_address)
-                .store_coins(storage_coins())
+                .store_coins(storage_coins() + transfer_fee())
 		.store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
 		.store_uint(1, 32)
 		.store_uint(0, 64)
@@ -32,18 +32,28 @@ cell generate_nft_content(int value, slice owner) {
 		.end_cell();
 
 
-	var msg = begin_cell()
-		.store_uint(0x10, 6)
-		.store_slice(address)
-		.store_coins(value)
-		.store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-		.store_uint(0, 32)
-		.store_slice(text)
-		.end_cell();
+        var transfer = begin_cell()
+                .store_uint(0xf8a7ea5, 32)
+                .store_uint(0, 64)
+                .store_uint(value, 128)
+                .store_slice(address)
+                .store_slice(my_address())
+                .store_uint(0, 1)
+                .store_coins(0)
+                .store_ref(begin_cell().store_slice(text).end_cell())
+                .end_cell();
 
-	if (value != 0) {
-		send_raw_message(msg, 1);
-	}
+        var msg = begin_cell()
+                .store_uint(0x10, 6)
+                .store_slice(token_address)
+                .store_coins(0)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_ref(transfer)
+                .end_cell();
+
+        if (value != 0) {
+                send_raw_message(msg, 1);
+        }
 
 	send_raw_message(deploy_message, 1);
 }
