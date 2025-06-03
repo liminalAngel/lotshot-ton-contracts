@@ -18,7 +18,7 @@ cell generate_nft_content(int value, slice owner) {
     return begin_cell().store_slice(owner).store_ref(result.store_slice(".json").end_cell()).end_cell();
 }
 
-() send_winning(int value, slice address, slice text, slice collection_address, int content, slice token_address) impure inline {
+() send_winning(int value, slice address, slice text, slice collection_address, int content, slice token_wallet_address) impure inline {
 	cell content_cell = generate_nft_content(content, address);
 	var deploy_message = begin_cell()
 		.store_uint(0x18, 6)
@@ -45,7 +45,7 @@ cell generate_nft_content(int value, slice owner) {
 
         var msg = begin_cell()
                 .store_uint(0x10, 6)
-                .store_slice(token_address)
+                .store_slice(token_wallet_address)
                 .store_coins(0)
                 .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                 .store_ref(transfer)
