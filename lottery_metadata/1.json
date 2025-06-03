@@ -1,0 +1,15 @@
+{
+    "name": "Lotshot Participant NFT Season 1",
+    "description": "Congrats with your winning!",
+    "image": "ipfs://bafybeihwenvufvwmx5wzxwzuctqtitgiehno2mlnpdjxsujwaoolh5yjua/1800.png",
+    "attributes": [
+    {
+      "trait_type": "Winning Amount",
+      "value": "1800 USDT"
+    },
+    {
+      "trait_type": "Reward Level",
+      "value": "Major"
+    }
+  ]
+}

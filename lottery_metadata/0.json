@@ -1,0 +1,16 @@
+{
+    "name": "Lotshot Winner NFT Season 1",
+    "description": "Congrats with Jackpot winning!",
+    "image": "ipfs://bafybeihwenvufvwmx5wzxwzuctqtitgiehno2mlnpdjxsujwaoolh5yjua/10000.png",
+     "attributes": [
+    {
+      "trait_type": "Winning Amount",
+      "value": "10000 USDT"
+    },
+    {
+      "trait_type": "Reward Level",
+      "value": "Jackpot"
+    }
+  ]
+}
+ 

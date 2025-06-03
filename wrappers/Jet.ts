@@ -1,0 +1,56 @@
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
+
+export type JetConfig = {
+    collectionAddress: Address;
+    adminAddress: string;
+    price: number;
+    refPercent: number;
+};
+
+export function jetConfigToCell(config: JetConfig): Cell {
+    return beginCell()
+        .storeRef(
+            beginCell()
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .storeUint(0, 16)
+            .endCell()
+        )
+        .storeUint(0, 64)
+        .storeAddress(config.collectionAddress)
+        .storeAddress(Address.parse(config.adminAddress))
+        .storeCoins(toNano(config.price))
+        .storeUint(config.refPercent, 16)
+        .endCell()
+}
+
+export class Jet implements Contract {
+    constructor(
+        readonly address: Address,
+        readonly init?: { code: Cell; data: Cell },
+    ) {}
+
+    static createFromAddress(address: Address) {
+        return new Jet(address);
+    }
+
+    static createFromConfig(config: JetConfig, code: Cell, workchain = 0) {
+        const data = jetConfigToCell(config);
+        const init = { code, data };
+        return new Jet(contractAddress(workchain, init), init);
+    }
+
+
+
+    async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().endCell(),
+        });
+    }
+}
