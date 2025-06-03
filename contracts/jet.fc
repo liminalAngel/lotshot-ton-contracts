@@ -16,7 +16,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
         slice, ;; owner address
         int, ;; ticket_price (jettons)
         int, ;; ref_percent
-        slice ;; token_address
+        slice ;; token_wallet_address
 ) load_data() inline {
         var ds = get_data().begin_parse();
         return (
@@ -37,7 +37,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
         slice admin_address,
         int price,
         int ref_percent,
-        slice token_address
+        slice token_wallet_address
 ) impure inline {
         set_data(
                 begin_cell()
@@ -47,7 +47,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                 .store_slice(admin_address)
                 .store_uint(price, 128)
                 .store_uint(ref_percent, 16)
-                .store_slice(token_address)
+                .store_slice(token_wallet_address)
                 .end_cell()
         );
 }
@@ -70,7 +70,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                 slice admin_address,
                 int price,
                 int ref_percent,
-                slice token_address
+                slice token_wallet_address
         ) = load_data();
 
         int op = in_msg_body.preload_uint(32);
@@ -98,17 +98,17 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                         var refund_transfer = begin_cell()
                                 .store_uint(0xf8a7ea5, 32)
                                 .store_uint(0, 64)
-                                .store_uint(excess, 128)
+                                .store_coins(excess)
                                 .store_slice(sender_wallet)
                                 .store_slice(my_address())
                                 .store_uint(0, 1)
-                                .store_coins(0)
-                                .store_ref(begin_cell().end_cell())
+                                .store_coins(1)
+                                .store_uint(0, 1)
                                 .end_cell();
 
                         var refund_msg = begin_cell()
                                 .store_uint(0x10, 6)
-                                .store_slice(token_address)
+                                .store_slice(token_wallet_address)
                                 .store_coins(0)
                                 .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                                 .store_ref(refund_transfer)
@@ -137,17 +137,17 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 var ref_transfer = begin_cell()
                                         .store_uint(0xf8a7ea5, 32)
                                         .store_uint(0, 64)
-                                        .store_uint(referral_amount, 128)
+                                        .store_coins(referral_amount)
                                         .store_slice(ref_addr)
                                         .store_slice(sender_wallet)
                                         .store_uint(0, 1)
-                                        .store_coins(0)
-                                        .store_ref(begin_cell().end_cell())
+                                        .store_coins(1)
+                                        .store_uint(0, 1)
                                         .end_cell();
 
                                 var ref_msg = begin_cell()
                                         .store_uint(0x10, 6)
-                                        .store_slice(token_address)
+                                        .store_slice(token_wallet_address)
                                         .store_coins(0)
                                         .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                                         .store_ref(ref_transfer)
@@ -200,7 +200,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
 				send_raw_message(msg, 1);
 				
 
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 
 				;; Отправить сообщение админу
@@ -211,7 +211,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                         if (major < 3) { ;; Выигрышей Major меньше 3
                                 major += 1;
                                 next_ticket_index += 1;
-        send_winning(MAJOR_PRIZE(), player_address, "major", collection_address, 1, token_address);
+        send_winning(MAJOR_PRIZE(), player_address, "major", collection_address, 1, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -222,7 +222,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}
 		}
@@ -232,7 +232,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 next_ticket_index += 1;
                                 high += 1;
 
-        send_winning(HIGH_PRIZE(), player_address, "high", collection_address, 2, token_address);
+        send_winning(HIGH_PRIZE(), player_address, "high", collection_address, 2, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -243,7 +243,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}		
 		}
@@ -253,7 +253,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 next_ticket_index += 1;
                                 mid += 1;
 
-         send_winning(MID_PRIZE(), player_address, "mid", collection_address, 3, token_address);
+         send_winning(MID_PRIZE(), player_address, "mid", collection_address, 3, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -264,7 +264,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}		
 		}
@@ -274,7 +274,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 next_ticket_index += 1;
                                 low_mid += 1;
 
-        send_winning(LOW_MID_PRIZE(), player_address, "low_mid", collection_address, 4, token_address);
+        send_winning(LOW_MID_PRIZE(), player_address, "low_mid", collection_address, 4, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -285,7 +285,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}		
 		}
@@ -295,7 +295,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 next_ticket_index += 1;
                                 low += 1;
 
-        send_winning(LOW_PRIZE(), player_address, "low", collection_address, 5, token_address);
+        send_winning(LOW_PRIZE(), player_address, "low", collection_address, 5, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -306,7 +306,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}		
 		}
@@ -316,7 +316,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                 next_ticket_index += 1;
                                 mini += 1;
 
-        send_winning(MINI_PRIZE(), player_address, "mini", collection_address, 6, token_address);
+        send_winning(MINI_PRIZE(), player_address, "mini", collection_address, 6, token_wallet_address);
 
 				cell new_ref = begin_cell()
 					.store_uint(jp, 16)
@@ -327,16 +327,16 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                                         .store_uint(low, 16)
                                         .store_uint(mini, 16)
 					.end_cell();
-                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 				return();
 			}		
 		}
 
 		next_ticket_index += 1;
 
-    send_winning(0, player_address, "lose", collection_address, 7, token_address);
+    send_winning(0, player_address, "lose", collection_address, 7, token_wallet_address);
 
-     store_data(counters_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+     store_data(counters_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
 		
     return();
 	}
@@ -364,7 +364,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
 
 	if (op == 3) { ;; change_admin_address
 		throw_unless(401, equal_slices(sender_address,admin_address));
-                store_data(counters_ref, next_ticket_index, collection_address, in_msg_body~load_msg_addr(), price, ref_percent, token_address);
+                store_data(counters_ref, next_ticket_index, collection_address, in_msg_body~load_msg_addr(), price, ref_percent, token_wallet_address);
 		return();
 	}
 
@@ -381,7 +381,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                 int low = counters_slice~load_uint(16);
                 int mini = counters_slice~load_uint(16);
 
-            send_winning(JACKPOT_PRIZE(), winner, "jackpot", collection_address, 0, token_address);
+            send_winning(JACKPOT_PRIZE(), winner, "jackpot", collection_address, 0, token_wallet_address);
 
                 jp += 1;
 
@@ -395,7 +395,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                         .store_uint(mini, 16)
                         .end_cell();
 
-                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_address);
+                store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
                 return();
         }
 }
@@ -431,7 +431,7 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                 slice admin_address,
                 int price,
                 int ref_percent,
-                slice token_address
+                slice token_wallet_address
         ) = load_data();
 
         return (
@@ -441,6 +441,6 @@ int MINI_PRIZE() asm "10 PUSHINT";       ;; 10 tokens
                 admin_address,
                 price,
                 ref_percent,
-                token_address
+                token_wallet_address
         );
 }
