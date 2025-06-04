@@ -1,12 +1,13 @@
 import { Address, beginCell, Cell, toNano } from '@ton/core';
 import { Jet } from '../wrappers/Jet';
+import { JettonMaster } from '../wrappers/JettonMaster';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { Collection } from '../wrappers/Collection';
 
 // Данные для коллекции.
 export const collectionConfig = {
     owner: process.env.COLLECTION_OWNER || '', // Адрес владельца коллекции, получателя роялти
-    royalty: 11, // Размер роялти: для 10% = 10
+    royalty: 22, // Размер роялти: для 10% = 10
     content: 'ipfs://bafybeidk355qgbty7amukruuhaptqc5kadxs2m65jtxgabgzexmetdqwsq', // Указываем путь до хранилища метаданных пример: 'ipfs://bafybeif2afmx74slkwx5iqzvjaa5hmmzwrx7i2po4sds3cv4ojx23kclyu'
 };
 
@@ -18,13 +19,18 @@ export async function run(provider: NetworkProvider) {
         adminAddress: process.env.ADMIN_ADDRESS || '', // Адрес админа для лотереи
         price: BigInt(process.env.TICKET_PRICE || '10000000'), // цена билета в jetton
         refPercent: Number(process.env.REF_PERCENT || '0'), // комиссия в базисных пунктах
-        tokenAddress: Address.parse(process.env.TOKEN_ADDRESS || ''),
+        tokenAddress: Address.parse('0:0000000000000000000000000000000000000000000000000000000000000000'),
     };
+
+    const jettonMaster = provider.open(
+        JettonMaster.createFromAddress(Address.parse(process.env.TOKEN_ADDRESS || '')),
+    );
 
     const jet = provider.open(Jet.createFromConfig(lotteryConfig, await compile('Jet')));
 
     // await deploy();
-    await setLotteryAddress();
+     await setLotteryAddress();
+    // await setTokenWallet();
     // withdraw();
     // finishRound();
 
@@ -41,6 +47,18 @@ export async function run(provider: NetworkProvider) {
             body: beginCell().storeUint(2, 32).storeUint(0, 64).storeAddress(jet.address).endCell(),
         });
     }
+
+    // Запишет адрес jetton-кошелька лотереи в контракт
+    async function setTokenWallet() {
+        const wallet = await jettonMaster.getWalletAddress(jet.address);
+        console.log('📦 Jetton wallet address for lottery:', wallet.toString());
+        console.log('🎯 Jet address (lottery contract):', jet.address.toString());
+        console.log('🏦 Jetton master address:', jettonMaster.address.toString());
+
+        await jet.sendSetTokenWalletAddress(provider.sender(), wallet, toNano('0.01'));
+        console.log('✅ Token wallet address sent to lottery contract');
+    }
+
 
     // Выведет деньги с контракта лотереи. Баланс лотереи должен быть больше 0.05 TON
     async function withdraw() {

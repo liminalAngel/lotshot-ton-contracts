@@ -55,4 +55,22 @@ export class Jet implements Contract {
             body: beginCell().endCell(),
         });
     }
+
+    async sendSetTokenWalletAddress(
+        provider: ContractProvider,
+        via: Sender,
+        wallet: Address,
+        value: bigint,
+    ) {
+        const body = beginCell()
+            .storeUint(5, 32)
+            .storeUint(0, 64)
+            .storeAddress(wallet)
+            .endCell();
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body,
+        });
+    }
 }

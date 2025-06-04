@@ -38,15 +38,15 @@ cell generate_nft_content(int value, slice owner) {
                 .store_uint(value, 128)
                 .store_slice(address)
                 .store_slice(my_address())
-                .store_uint(0, 1)
-                .store_coins(0)
+                .store_maybe_ref(null())
+                .store_coins(transfer_fee())
                 .store_ref(begin_cell().store_slice(text).end_cell())
                 .end_cell();
 
         var msg = begin_cell()
                 .store_uint(0x10, 6)
                 .store_slice(token_wallet_address)
-                .store_coins(0)
+                .store_coins(transfer_fee())
                 .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                 .store_ref(transfer)
                 .end_cell();

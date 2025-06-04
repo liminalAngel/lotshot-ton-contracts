@@ -95,21 +95,21 @@ slice token_wallet_address
 
         int excess = amount - price;
         if (excess > 0) {
-            var refund_transfer = begin_cell()
+                var refund_transfer = begin_cell()
                 .store_uint(0xf8a7ea5, 32)
                 .store_uint(0, 64)
                 .store_coins(excess)
                 .store_slice(sender_wallet)
                 .store_slice(my_address())
-                .store_uint(0, 1)
-                .store_coins(1)
+                .store_maybe_ref(null())
+                .store_coins(transfer_fee())
                 .store_uint(0, 1)
                 .end_cell();
 
             var refund_msg = begin_cell()
                 .store_uint(0x10, 6)
                 .store_slice(token_wallet_address)
-                .store_coins(0)
+                .store_coins(transfer_fee())
                 .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                 .store_ref(refund_transfer)
                 .end_cell();
@@ -140,15 +140,15 @@ slice token_wallet_address
                     .store_coins(referral_amount)
                     .store_slice(ref_addr)
                     .store_slice(sender_wallet)
-                    .store_uint(0, 1)
-                    .store_coins(1)
+                    .store_maybe_ref(null())
+                    .store_coins(transfer_fee())
                     .store_uint(0, 1)
                     .end_cell();
 
                 var ref_msg = begin_cell()
                     .store_uint(0x10, 6)
                     .store_slice(token_wallet_address)
-                    .store_coins(0)
+                    .store_coins(transfer_fee())
                     .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                     .store_ref(ref_transfer)
                     .end_cell();
@@ -157,7 +157,7 @@ slice token_wallet_address
         }
 
         randomize_lt();
-        var x = rand(12000);
+        var x = rand(120);
 
         slice counters_slice = counters_ref.begin_parse();
 
@@ -207,7 +207,7 @@ slice token_wallet_address
             }
         }
 
-        if (x < 4) { ;; выпало до 4
+        if (x < 3) { ;; выпало до 4
             if (major < 3) { ;; Выигрышей Major меньше 3
                 major += 1;
                 next_ticket_index += 1;
@@ -227,7 +227,7 @@ slice token_wallet_address
             }
         }
 
-        if (x < 14) {
+        if (x < 8) {
             if (high < 10) {
                 next_ticket_index += 1;
                 high += 1;
@@ -248,8 +248,8 @@ slice token_wallet_address
             }
         }
 
-        if (x < 64) {
-            if (mid < 50) {
+        if (x < 28) {
+            if (mid < 35) {
                 next_ticket_index += 1;
                 mid += 1;
 
@@ -269,8 +269,8 @@ slice token_wallet_address
             }
         }
 
-        if (x < 214) {
-            if (low_mid < 150) {
+        if (x < 48) {
+            if (low_mid < 35) {
                 next_ticket_index += 1;
                 low_mid += 1;
 
@@ -290,8 +290,8 @@ slice token_wallet_address
             }
         }
 
-        if (x < 514) {
-            if (low < 300) {
+        if (x < 73) {
+            if (low < 30) {
                 next_ticket_index += 1;
                 low += 1;
 
@@ -311,8 +311,8 @@ slice token_wallet_address
             }
         }
 
-        if (x < 1714) {
-            if (mini < 1200) {
+        if (x < 108) {
+            if (mini < 7) {
                 next_ticket_index += 1;
                 mini += 1;
 
@@ -360,7 +360,7 @@ slice token_wallet_address
 
         send_raw_message(msg, 1);
         return();
-    };
+    }
 
     if (op == 3) { ;; change_admin_address
     throw_unless(401, equal_slices(sender_address,admin_address));
@@ -396,6 +396,12 @@ slice token_wallet_address
     .end_cell();
 
     store_data(new_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, token_wallet_address);
+    return();
+    }
+
+    if (op == 5) { ;; set token_wallet_address
+    throw_unless(401, equal_slices(sender_address, admin_address));
+    store_data(counters_ref, next_ticket_index, collection_address, admin_address, price, ref_percent, in_msg_body~load_msg_addr());
     return();
     }
 }
