@@ -101,7 +101,7 @@ slice token_wallet_address
                 .store_coins(excess)
                 .store_slice(sender_wallet)
                 .store_slice(my_address())
-                .store_maybe_ref(null())
+                .store_uint(0, 1)
                 .store_coins(transfer_fee())
                 .store_uint(0, 1)
                 .end_cell();
@@ -140,7 +140,7 @@ slice token_wallet_address
                     .store_coins(referral_amount)
                     .store_slice(ref_addr)
                     .store_slice(sender_wallet)
-                    .store_maybe_ref(null())
+                    .store_uint(0, 1)
                     .store_coins(transfer_fee())
                     .store_uint(0, 1)
                     .end_cell();
